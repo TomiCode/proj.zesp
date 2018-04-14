@@ -1,6 +1,6 @@
 #include "main.h"
-#include "messages.h"
 #include "client.h"
+#include "messages.h"
 
 std::vector<Client*> server_clients;
 
