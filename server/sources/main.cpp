@@ -1,4 +1,13 @@
 #include "main.h"
+#include "messages.h"
+#include "client.h"
+
+std::vector<Client*> server_clients;
+
+void client_messages_handler(struct msg_header *header, Client *client)
+{
+  printf("Message got from client, type: %u, size: %u.\n", header->type, header->size);
+}
 
 int main(int argc, char** argv)
 {
@@ -15,18 +24,28 @@ int main(int argc, char** argv)
   }
 
   struct sockaddr_in address;
-  address.sin_port = htons( PORT );
+  int addrlen = sizeof(address);
+  address.sin_port = htons(LISTEN_PORT);
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
 
-  if (!bind(srv_fd, (struct sockaddr*)&address, sizeof(address))) {
+  if (bind(srv_fd, (struct sockaddr*)&address, sizeof(address))) {
     perror("bind");
     exit(EXIT_FAIL);
   }
 
-  if (!listen(srv_fd, LISTEN_MAX_CONN)) {
+  if (listen(srv_fd, LISTEN_MAX_CONN)) {
     perror("listen");
     exit(EXIT_FAIL);
+  }
+  printf("Hello, server is waiting for connections on :%d.\n", LISTEN_PORT);
+
+  int accept_socket;
+  while(1) {
+    if ((accept_socket = accept(srv_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))) {
+      Client *client_ptr = new Client(1024, accept_socket);
+      server_clients.push_back(client_ptr->begin());
+    }
   }
 
   return 0;
