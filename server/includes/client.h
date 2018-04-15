@@ -19,7 +19,8 @@ public:
   Client(uint32_t b_size, int32_t socket);
   ~Client(void);
 
-  Client* begin(void);
+  Client* handshake(struct msg_header *handshake);
+  bool send(void *ptr, size_t size);
 };
 
 #endif /* CLIENT_H */

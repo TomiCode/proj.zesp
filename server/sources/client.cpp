@@ -6,7 +6,7 @@ Client::Client(uint32_t b_size, int32_t socket)
     socket(socket)
     
 {
-  printf("Hello, this is a new client -> socket %d.\n", socket);
+  printf("Hello new client at socket %d.\n", socket);
   this->buffer_ptr = (uint8_t*)malloc(sizeof(uint8_t) * b_size);
   this->buffer_size = b_size;
 }
@@ -20,10 +20,17 @@ Client::~Client(void)
     close(this->socket);
 }
 
-Client* Client::begin(void)
+Client* Client::handshake(struct msg_header *handshake)
 {
   this->_local_thread = std::thread(&Client::_recv_thread, this);
+  this->send(handshake, sizeof(struct msg_header));
+
   return this;
+}
+
+bool Client::send(void *ptr, size_t size)
+{
+  return ::send(this->socket, ptr, size, 0) != -1;
 }
 
 void Client::_recv_thread(void)
@@ -38,6 +45,7 @@ void Client::_recv_thread(void)
     result = recv(this->socket, this->buffer_ptr + this->buffer_position, recv_size, 0);
     if (result == 0) {
       printf("Client %d probably disconected.", this->socket);
+      this->valid = false;
       break;
     }
     else if (result == -1) {
@@ -59,4 +67,5 @@ void Client::_recv_thread(void)
     memmove(this->buffer_ptr, this->buffer_ptr + this->buffer_position, result);
     this->buffer_position = result;
   }
+  printf("Client %d recv thread stopped.\n", this->socket);
 }

@@ -6,7 +6,7 @@ std::vector<Client*> server_clients;
 
 void client_messages_handler(struct msg_header *header, Client *client)
 {
-  printf("Message got from client, type: %u, size: %u.\n", header->type, header->size);
+  printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
 }
 
 int main(int argc, char** argv)
@@ -40,11 +40,12 @@ int main(int argc, char** argv)
   }
   printf("Hello, server is waiting for connections on :%d.\n", LISTEN_PORT);
 
+  struct msg_header handshake_msg = { msg_type::server_handshake };
   int accept_socket;
   while(1) {
     if ((accept_socket = accept(srv_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))) {
       Client *client_ptr = new Client(1024, accept_socket);
-      server_clients.push_back(client_ptr->begin());
+      server_clients.push_back(client_ptr->handshake(&handshake_msg));
     }
   }
 

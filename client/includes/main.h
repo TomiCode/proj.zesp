@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <curses.h>
+
 #define CONNECT_PORT 1337
 
 #endif /* MAIN_H CLIENT */

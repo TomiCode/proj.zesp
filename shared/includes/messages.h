@@ -3,16 +3,34 @@
 
 #include <inttypes.h>
 
-#define MESSAGE_BODY(type, header) ((type*)((&header.size) + sizeof(uint32_t)))
+enum class msg_type : uint8_t {
+  invalid = 0,
+  server_handshake = 1,
+  auth_request = 2,
+  auth_response = 3
+  
+};
+
+enum class auth_status : uint8_t {
+  invalid = 0,
+  logged_in = 1,
+  no_account = 2
+};
 
 struct msg_header {
-  uint8_t type;
+  msg_type type;
   uint32_t size;
 } __attribute__((packed));
 
-struct msg_login {
-  char login[64];
+struct msg_auth_request {
+  struct msg_header header;
+  char nick[64];
   char password[64];
+} __attribute__((packed));
+
+struct msg_auth_response {
+  struct msg_header header;
+  auth_status status;
 } __attribute__((packed));
 
 
