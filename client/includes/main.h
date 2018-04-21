@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <thread>
+#include <unordered_map>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,5 +17,8 @@
 #include <curses.h>
 
 #define CONNECT_PORT 1337
+
+class Ui;
+class Client;
 
 #endif /* MAIN_H CLIENT */

@@ -1,4 +1,5 @@
 #include "main.h"
+#include "client.h"
 
 void receive_thread(int client_socket)
 {
@@ -11,48 +12,20 @@ void receive_thread(int client_socket)
   }
 }
 
+void print_hex(char * ptr, size_t len)
+{
+  for(size_t i = 0; i < len; i++)
+    printf("%x ", *(ptr++));
+  printf("\n");
+}
+
 int main(int argc, char** argv)
 {
-  char input[256];
+  Client client;
 
-  WINDOW *mainwin = NULL;
-  WINDOW *cmdwin = NULL;
-  WINDOW *chatbox = NULL;
-
-  if ((mainwin = initscr()) == NULL) {
-    perror("initscr");
-    exit(-1);
-  }
-
-  int maxy, maxx;
-  getmaxyx(mainwin, maxy, maxx);
-
-  // noecho();
-  refresh();
-
-  chatbox = newwin(maxy - 1, maxx, 0, 0);
-  box(chatbox, 0, 0);
-
-  cmdwin = newwin(1, maxx, maxy - 1, 0);
-  // keypad(cmdwin, TRUE);
-  wrefresh(chatbox);
-  wrefresh(cmdwin);
-
-  wgetstr(cmdwin, input);
-
-  // int ch;
-  // while ( (ch = wgetch(cmdwin)) != 'q' ) {
-  //   if (ch == '\n') werase(cmdwin);
-  //  else if (ch == KEY_BACKSPACE)
-    // waddch(cmdwin, ch);
-  // }
-
-  delwin(cmdwin);
-  delwin(chatbox);
-  delwin(mainwin);
-  endwin();
-  refresh();
-
+  client.init();
+  while(client.run());
+  
   return 0; // Skip all other things for now.
 
   int client_socket = 0;
@@ -87,5 +60,5 @@ int main(int argc, char** argv)
   }
   free(stdin_line);
 
-	return 0;
+  return 0;
 }
