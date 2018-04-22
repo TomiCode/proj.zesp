@@ -3,7 +3,6 @@
 
 #include "main.h"
 
-
 enum class client_state_t : uint8_t {
   invalid = 0,
   notconnected = 1,
@@ -14,7 +13,7 @@ enum class client_state_t : uint8_t {
 
 class Client {
 private:
-  Ui *ui_manager;
+  Ui *ui;
   client_state_t state;
 
   int socket;
@@ -27,9 +26,13 @@ public:
   uint32_t hash(const char *str);
   bool process_msg(char *str);
 
+  bool parse_params(char*, const char *fmt, ...);
+
   bool run(void);
 
   void cmd_connect(char * params);
+  void cmd_register(char*);
+  void cmd_login(char*);
 };
 
 #endif // CLIENT_H
