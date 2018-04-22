@@ -6,9 +6,10 @@
 enum class msg_type : uint8_t {
   invalid = 0,
   server_handshake = 1,
-  auth_request = 2,
-  auth_response = 3
-  
+  server_message = 2,
+  auth_login = 3,
+  auth_register = 4,
+  auth_response = 5
 };
 
 enum class auth_status : uint8_t {
@@ -22,9 +23,19 @@ struct msg_header {
   uint32_t size;
 } __attribute__((packed));
 
-struct msg_auth_request {
+struct msg_server_handshake {
   struct msg_header header;
-  char nick[64];
+  char description[64];
+};
+
+struct msg_server {
+  struct msg_header header;
+  char content[128];
+};
+
+struct msg_login {
+  struct msg_header header;
+  char username[64];
   char password[64];
 } __attribute__((packed));
 

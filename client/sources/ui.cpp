@@ -61,7 +61,7 @@ void Ui::process(void)
         this->cmd_mode = ui_mode_t::invalid;
       this->reset_buffers();
       break;
-    case 127: {
+    case 0x7F: {
         int y, x;
         getyx(this->cmd_wnd, y, x);
         if (x > 0)
@@ -91,7 +91,8 @@ void Ui::process(void)
         this->cmd_mode = ui_mode_t::message;
       *(this->buffers.input++) = _char;
   }
-  waddch(this->cmd_wnd, _char | (this->cmd_mode == ui_mode_t::command ? A_BOLD : 0));
+  if (_char != 0x7F)
+    waddch(this->cmd_wnd, _char | (this->cmd_mode == ui_mode_t::command ? A_BOLD : 0));
 }
 
 bool Ui::process_buffers(void)

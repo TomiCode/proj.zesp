@@ -7,20 +7,24 @@
 class Client {
 private:
   bool valid;
+  bool logged;
+
   uint8_t *buffer_ptr;
   uint32_t buffer_size;
   uint32_t buffer_position;
 
   int32_t socket;
+  char username[64];
+
   std::thread _local_thread;
-protected:
   void _recv_thread(void);
+
 public:
   Client(uint32_t b_size, int32_t socket);
   ~Client(void);
 
-  Client* handshake(struct msg_header *handshake);
+  Client* handshake(struct msg_server_handshake *handshake);
   bool send(void *ptr, size_t size);
 };
 
-#endif /* CLIENT_H */
+#endif // CLIENT_H

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <mutex>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,7 @@
 
 class Client;
 
-extern void client_messages_handler(struct msg_header *, Client *client);
+extern void client_message(struct msg_header *, Client *client);
+extern void client_disconnect(Client *client);
 
 #endif

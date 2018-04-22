@@ -1,15 +1,19 @@
 #include "client.h"
 #include "ui.h"
+#include "messages.h"
+#include "receiver.h"
 
 Client::Client()
   : state(client_state_t::invalid)
 {
   this->ui = new Ui(this);
+  this->receiver = new Receiver(this);
 }
 
 Client::~Client()
 {
   delete this->ui;
+  delete this->receiver;
 }
 
 uint32_t Client::hash(const char *str)
@@ -55,6 +59,25 @@ bool Client::parseParams(char *args, const char *fmt, ...)
   return true;
 }
 
+void Client::handleMessage(struct msg_header *header)
+{
+  switch(header->type) {
+    case msg_type::server_handshake:
+      {
+        struct msg_server_handshake *handshake = (struct msg_server_handshake*)header;
+        this->ui->write("[motd] %s\n", handshake->description);
+      }
+      break;
+    case msg_type::server_message:
+      {
+        struct msg_server *message = (struct msg_server*)header;
+        this->ui->write("[server] %s\n", message->content);
+      }
+      break;
+  }
+  this->ui->write("Received message %d.\n", header->type);
+}
+
 bool Client::init(void)
 {
   if (!this->ui->init())
@@ -67,6 +90,11 @@ bool Client::init(void)
   this->ui->register_command("login", &Client::cmd_login);
 
   return true;
+}
+
+void Client::send(struct msg_header *header)
+{
+  ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0);
 }
 
 bool Client::process_msg(char *str)
@@ -101,15 +129,34 @@ void Client::cmd_connect(char *args)
     this->ui->write("connect: can not connect to server at :%d.\n", port);
     return;
   }
+  this->receiver->start(this->socket);
   this->state = client_state_t::connected;
 }
 
 void Client::cmd_register(char *args)
 {
+  if (this->state != client_state_t::connected) {
+    this->ui->write("register: not connected to server.\n");
+    return;
+  }
+
 
 }
 
 void Client::cmd_login(char *args)
 {
+  if (this->state != client_state_t::connected) {
+    this->ui->write("register: not connected to server.\n");
+    return;
+  }
 
+  char *username, *passwd;
+  if (!this->parseParams(args, "ss", &username, &passwd)) return;
+
+  struct msg_login login = {{msg_type::auth_login}};
+  login.header.size = sizeof(msg_login) - sizeof(msg_header);
+  strcpy(login.username, username);
+  strcpy(login.password, passwd);
+
+  this->send((struct msg_header*)&login);
 }

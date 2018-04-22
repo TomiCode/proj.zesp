@@ -20,5 +20,6 @@
 
 class Ui;
 class Client;
+class Receiver;
 
 #endif /* MAIN_H CLIENT */

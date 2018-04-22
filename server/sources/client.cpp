@@ -2,6 +2,7 @@
 
 Client::Client(uint32_t b_size, int32_t socket)
   : valid(true),
+    logged(true),
     buffer_position(0),
     socket(socket)
     
@@ -20,10 +21,10 @@ Client::~Client(void)
     close(this->socket);
 }
 
-Client* Client::handshake(struct msg_header *handshake)
+Client* Client::handshake(struct msg_server_handshake *handshake)
 {
   this->_local_thread = std::thread(&Client::_recv_thread, this);
-  this->send(handshake, sizeof(struct msg_header));
+  this->send(handshake, sizeof(struct msg_server_handshake));
 
   return this;
 }
@@ -44,7 +45,7 @@ void Client::_recv_thread(void)
   while(this->valid) {
     result = recv(this->socket, this->buffer_ptr + this->buffer_position, recv_size, 0);
     if (result == 0) {
-      printf("Client %d probably disconected.", this->socket);
+      printf("Client socket %d disconected.\n", this->socket);
       this->valid = false;
       break;
     }
@@ -58,7 +59,7 @@ void Client::_recv_thread(void)
       continue; // We don't have enough data to handle.
 
     // Handle received message.
-    client_messages_handler(buffer_message, this);
+    client_message(buffer_message, this);
     
     // Content that left in the buffer.
     result = this->buffer_position - (sizeof(struct msg_header) + buffer_message->size);
@@ -68,4 +69,5 @@ void Client::_recv_thread(void)
     this->buffer_position = result;
   }
   printf("Client %d recv thread stopped.\n", this->socket);
+  client_disconnect(this);
 }

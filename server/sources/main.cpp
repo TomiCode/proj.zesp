@@ -1,12 +1,31 @@
 #include "main.h"
 #include "client.h"
 #include "messages.h"
+#include "database.h"
 
+Database users_db("users.wtf");
 std::vector<Client*> server_clients;
 
-void client_messages_handler(struct msg_header *header, Client *client)
+void client_message(struct msg_header *header, Client *client)
 {
   printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
+
+  switch(header->type) {
+    case msg_type::auth_login:
+      {
+        struct msg_login *login = (struct msg_login*)header;
+        printf("Should I authorize %s?\n", login->username);
+        printf("Password -> %s.\n", login->password);
+      }
+      break;
+    default:
+      printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
+  }
+}
+
+void client_disconnect(Client *client)
+{
+
 }
 
 int main(int argc, char** argv)
@@ -18,6 +37,7 @@ int main(int argc, char** argv)
   }
 
   int sock_opt;
+  setsockopt(srv_fd, SOL_SOCKET, SO_REUSEADDR, &sock_opt, sizeof(sock_opt));
   if (setsockopt(srv_fd, SOL_SOCKET, SO_REUSEPORT, &sock_opt, sizeof(sock_opt))) {
     perror("setsockopt");
     exit(EXIT_FAIL);
@@ -38,14 +58,18 @@ int main(int argc, char** argv)
     perror("listen");
     exit(EXIT_FAIL);
   }
+
+  users_db.check();
   printf("Hello, server is waiting for connections on :%d.\n", LISTEN_PORT);
 
-  struct msg_header handshake_msg = { msg_type::server_handshake };
+  struct msg_server_handshake handshake = {{msg_type::server_handshake, 0}, "Hello on the server! Please login or register."};
+  handshake.header.size = sizeof(struct msg_server_handshake) - sizeof(struct msg_header);
   int accept_socket;
+
   while(1) {
     if ((accept_socket = accept(srv_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))) {
       Client *client_ptr = new Client(1024, accept_socket);
-      server_clients.push_back(client_ptr->handshake(&handshake_msg));
+      server_clients.push_back(client_ptr->handshake(&handshake));
     }
   }
 
