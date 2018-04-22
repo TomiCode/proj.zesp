@@ -16,7 +16,7 @@ enum class ui_mode_t : uint8_t {
   message = 3
 };
 
-typedef void (Client::*command_fn_t)(char *params);
+typedef void (Client::*command_fn_t)(char *args);
 
 class Ui {
 private:

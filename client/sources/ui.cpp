@@ -123,6 +123,6 @@ void Ui::write(const char *fmt, ...)
 
 void Ui::register_command(const char *cmd, command_fn_t fn)
 {
-  this->commands.insert({this->parent->hash(cmd), fn});
+  this->commands.insert({Client::hash(cmd), fn});
 }
 

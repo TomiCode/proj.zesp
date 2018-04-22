@@ -21,18 +21,18 @@ public:
   Client();
   ~Client();
 
+  static uint32_t hash(const char *str);
+  static bool parseParams(char *ptr, const char *fmt, ...);
+
   bool init(void);
   
-  uint32_t hash(const char *str);
   bool process_msg(char *str);
-
-  bool parse_params(char*, const char *fmt, ...);
-
   bool run(void);
 
-  void cmd_connect(char * params);
-  void cmd_register(char*);
-  void cmd_login(char*);
+
+  void cmd_connect(char *args);
+  void cmd_register(char *args);
+  void cmd_login(char *args);
 };
 
 #endif // CLIENT_H
