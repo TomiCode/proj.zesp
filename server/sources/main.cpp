@@ -9,13 +9,22 @@ std::vector<Client*> server_clients;
 void client_message(struct msg_header *header, Client *client)
 {
   printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
-
   switch(header->type) {
     case msg_type::auth_login:
       {
         struct msg_login *login = (struct msg_login*)header;
-        printf("Should I authorize %s?\n", login->username);
-        printf("Password -> %s.\n", login->password);
+        printf("Processing login for user %s.\n", login->username);
+
+        struct msg_auth_response response = {{msg_type::auth_response}};
+        response.header.size = sizeof(struct msg_auth_response) - sizeof(struct msg_header);
+
+        if (users_db.authorize(login->username, login->password)) {
+          client->setLogin(login->username);
+          response.status = auth_status::logged_in;
+        }
+        else
+          response.status = auth_status::invalid;
+        client->send(&response);
       }
       break;
     default:

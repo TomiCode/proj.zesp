@@ -24,14 +24,20 @@ Client::~Client(void)
 Client* Client::handshake(struct msg_server_handshake *handshake)
 {
   this->_local_thread = std::thread(&Client::_recv_thread, this);
-  this->send(handshake, sizeof(struct msg_server_handshake));
-
+  this->send(handshake);
   return this;
 }
 
-bool Client::send(void *ptr, size_t size)
+bool Client::send(void *ptr_header)
 {
-  return ::send(this->socket, ptr, size, 0) != -1;
+  struct msg_header *header = (struct msg_header*)ptr_header;
+  return ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0) != -1;
+}
+
+void Client::setLogin(const char *username)
+{
+  strcpy(this->username, username);
+  this->logged = true;
 }
 
 void Client::_recv_thread(void)

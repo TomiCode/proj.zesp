@@ -24,7 +24,8 @@ public:
   ~Client(void);
 
   Client* handshake(struct msg_server_handshake *handshake);
-  bool send(void *ptr, size_t size);
+  bool send(void *ptr_header);
+  void setLogin(const char *username);
 };
 
 #endif // CLIENT_H
