@@ -7,7 +7,7 @@ enum class client_state_t : uint8_t {
   invalid = 0,
   notconnected = 1,
   connected = 2,
-  disconnected = 3,
+  logged = 3,
   error = 4
 };
 
@@ -19,6 +19,8 @@ private:
 
   int socket;
 
+  bool guard_state(const char *perfix, client_state_t validState);
+
   void cmd_connect(char *args);
   void cmd_register(char *args);
   void cmd_login(char *args);
@@ -27,7 +29,7 @@ public:
   ~Client();
 
   static uint32_t hash(const char *str);
-  static bool parseParams(char *ptr, const char *fmt, ...);
+  bool parseParams(char *ptr, const char *fmt, ...);
 
   void handleMessage(struct msg_header *header);
 

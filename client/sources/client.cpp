@@ -19,15 +19,17 @@ Client::~Client()
 uint32_t Client::hash(const char *str)
 {
   uint32_t base = 0x1925F;
-  for(int i = 0; i < strlen(str); i++) {
-    base = (base ^ *(str + i)) << 4;
-  }
+  for(; *str != '\0'; str++)
+    base = (base ^ *str) << 4;
   return base;
 }
 
 bool Client::parseParams(char *args, const char *fmt, ...)
 {
-  if (args == NULL) return false;
+  if (args == NULL) {
+    this->ui->write("[exec] Command expected %d parameter(s).\n", strlen(fmt));
+    return false;
+  }
 
   char *lastBuffer = args;
   va_list params;
@@ -55,7 +57,10 @@ bool Client::parseParams(char *args, const char *fmt, ...)
   }
   va_end(params);
 
-  if (*fmt != '\0') return false;
+  if (*fmt != '\0') {
+    this->ui->write("[exec] To few command parameters.\n");
+    return false;
+  }
   return true;
 }
 
@@ -74,8 +79,21 @@ void Client::handleMessage(struct msg_header *header)
         this->ui->write("[server] %s\n", message->content);
       }
       break;
+    case msg_type::auth_response:
+      {
+        struct msg_auth_response *response = (struct msg_auth_response*)header;
+        if (response->status == auth_status::invalid) {
+          this->ui->write("[login] Invalid password or user does not exists.\n");
+        }
+        else if (response->status == auth_status::logged_in) {
+          this->state = client_state_t::logged;
+          this->ui->write("[login] Successfully logged in.\n");
+        }
+      }
+      break;
+    default:
+      this->ui->write("[?] message received, type: %04x.\n", header->type);
   }
-  this->ui->write("Received message %d.\n", header->type);
 }
 
 bool Client::init(void)
@@ -89,6 +107,9 @@ bool Client::init(void)
   this->ui->register_command("register", &Client::cmd_register);
   this->ui->register_command("login", &Client::cmd_login);
 
+  this->state = client_state_t::notconnected;
+  this->ui->write("Hello to super epic chat client v1.3.3.7\n");
+  
   return true;
 }
 
@@ -108,13 +129,34 @@ bool Client::run(void)
   return true;
 }
 
+bool Client::guard_state(const char *prefix, client_state_t validState)
+{
+  if (this->state == validState)
+    return false;
+
+  switch(this->state) {
+    case client_state_t::notconnected:
+      this->ui->write("[%s] You are not connected.\n", prefix);
+      break;
+    case client_state_t::connected:
+      this->ui->write("[%s] You are connected to server!\n", prefix);
+      break;
+    case client_state_t::logged:
+      this->ui->write("[%s] You are logged in.\n", prefix);
+      break;
+    default:
+      this->ui->write("[%s] You can not execute the command.\n", prefix);
+  }
+  return true;
+}
+
 void Client::cmd_connect(char *args)
 {
   char *ip_addr; int port;
-  if (!this->parseParams(args, "si", &ip_addr, &port)) {
-    this->ui->write("usage: connect <ip address> <port>\n");
+  if (this->guard_state("connect", client_state_t::notconnected))
+      return;
+  if (!this->parseParams(args, "si", &ip_addr, &port))
     return;
-  }
 
   struct sockaddr_in address = {0};
   address.sin_family = AF_INET;
@@ -135,20 +177,14 @@ void Client::cmd_connect(char *args)
 
 void Client::cmd_register(char *args)
 {
-  if (this->state != client_state_t::connected) {
-    this->ui->write("register: not connected to server.\n");
+  if (this->guard_state("register", client_state_t::connected))
     return;
-  }
-
-
 }
 
 void Client::cmd_login(char *args)
 {
-  if (this->state != client_state_t::connected) {
-    this->ui->write("register: not connected to server.\n");
+  if (this->guard_state("login", client_state_t::connected))
     return;
-  }
 
   char *username, *passwd;
   if (!this->parseParams(args, "ss", &username, &passwd)) return;
