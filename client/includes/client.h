@@ -35,9 +35,9 @@ public:
 
   bool init(void);
   
-  bool process_msg(char *str);
+  void process_msg(const char *str);
   bool run(void);
-  void send(struct msg_header *header);
+  void send(void *msg);
 
 
 };

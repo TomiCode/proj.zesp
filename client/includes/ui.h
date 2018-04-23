@@ -38,7 +38,7 @@ private:
   std::unordered_map<uint32_t, command_fn_t> commands;
 
   // Process collected data
-  bool process_buffers(void);
+  void process_buffers(void);
   void reset_buffers(void);
 public:
   Ui(Client *owner);

@@ -57,8 +57,8 @@ void Ui::process(void)
       werase(this->cmd_wnd);
       wrefresh(this->cmd_wnd);
       *(this->buffers.input) = '\0';
-      if (this->process_buffers())
-        this->cmd_mode = ui_mode_t::invalid;
+      this->process_buffers();
+      this->cmd_mode = ui_mode_t::invalid;
       this->reset_buffers();
       break;
     case 0x7F: {
@@ -95,16 +95,17 @@ void Ui::process(void)
     waddch(this->cmd_wnd, _char | (this->cmd_mode == ui_mode_t::command ? A_BOLD : 0));
 }
 
-bool Ui::process_buffers(void)
+void Ui::process_buffers(void)
 {
   if (this->cmd_mode == ui_mode_t::command || this->cmd_mode == ui_mode_t::params) {
     auto command_it = this->commands.find(this->parent->hash(this->buffers.begin));
     if (command_it == this->commands.end())
-      this->write("Command %s does not exists.\n", this->buffers.begin);
-    else (this->parent->*command_it->second)(this->buffers.params);
-    return true;
+      this->write("[exec] Command %s does not exists.\n", this->buffers.begin);
+    else
+      (this->parent->*command_it->second)(this->buffers.params);
   }
-  return this->parent->process_msg(this->buffers.begin);
+  else
+    this->parent->process_msg(this->buffers.begin);
 }
 
 void Ui::reset_buffers(void)
@@ -120,6 +121,7 @@ void Ui::write(const char *fmt, ...)
   vwprintw(this->messages_wnd, fmt, args);
   wrefresh(this->messages_wnd);
   va_end(args);
+  wrefresh(this->cmd_wnd);
 }
 
 void Ui::register_command(const char *cmd, command_fn_t fn)

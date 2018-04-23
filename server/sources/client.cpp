@@ -2,7 +2,7 @@
 
 Client::Client(uint32_t b_size, int32_t socket)
   : valid(true),
-    logged(true),
+    logged(false),
     buffer_position(0),
     socket(socket)
     
@@ -76,4 +76,14 @@ void Client::_recv_thread(void)
   }
   printf("Client %d recv thread stopped.\n", this->socket);
   client_disconnect(this);
+}
+
+const char *Client::authName(void)
+{
+  return this->username;
+}
+
+bool Client::active(void)
+{
+  return (this->valid && this->logged);
 }

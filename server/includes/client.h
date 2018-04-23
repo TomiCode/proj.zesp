@@ -26,6 +26,9 @@ public:
   Client* handshake(struct msg_server_handshake *handshake);
   bool send(void *ptr_header);
   void setLogin(const char *username);
+
+  const char *authName(void);
+  bool active(void);
 };
 
 #endif // CLIENT_H

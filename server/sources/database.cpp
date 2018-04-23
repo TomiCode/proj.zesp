@@ -2,7 +2,10 @@
 
 Database::Database(const char *filepath)
 {
-  this->dbfile = fopen(filepath, "a+b");
+  this->dbfile = fopen(filepath, "r+b");
+  if (this->dbfile == NULL) {
+    this->dbfile = fopen(filepath, "w+b");
+  }
 }
 
 Database::~Database()
@@ -64,7 +67,10 @@ bool Database::_create(const char *username, uint64_t password)
   // Increment users count in the database file.
   header.users++;
   fseek(this->dbfile, 0, SEEK_SET);
-  return fwrite(&header, sizeof(database_head_t), 1, this->dbfile) == 1;
+  bool valid = fwrite(&header, sizeof(database_head_t), 1, this->dbfile) == 1;
+  fflush(this->dbfile);
+
+  return valid;
 }
 
 bool Database::create(const char *username, const char *password)

@@ -12,7 +12,7 @@ void client_message(struct msg_header *header, Client *client)
   switch(header->type) {
     case msg_type::auth_login:
       {
-        struct msg_login *login = (struct msg_login*)header;
+        struct msg_auth_request *login = (struct msg_auth_request*)header;
         printf("Processing login for user %s.\n", login->username);
 
         struct msg_auth_response response = {{msg_type::auth_response}};
@@ -27,8 +27,43 @@ void client_message(struct msg_header *header, Client *client)
         client->send(&response);
       }
       break;
+    case msg_type::auth_register:
+      {
+        struct msg_auth_request *auth_register = (struct msg_auth_request*)header;
+        printf("Register new user %s, but first checking if exists..\n", auth_register->username);
+
+        struct msg_auth_response response = {{msg_type::auth_response}};
+        response.header.size = sizeof(struct msg_auth_response) - sizeof(struct msg_header);
+        if (users_db.exists(auth_register->username)) {
+          response.status = auth_status::exists;
+        }
+        else {
+          if (!users_db.create(auth_register->username, auth_register->password)) {
+            printf("Error occured while user %s creation.\n", auth_register->username);
+            response.status = auth_status::error;
+          }
+          else
+            response.status = auth_status::created;
+        }
+        client->send(&response);
+      }
+      break;
+    case msg_type::global_message:
+      {
+        struct msg_global_message *message = (struct msg_global_message*)header;
+        printf("Global message send by %s.\n", client->authName());
+
+        struct msg_global_message response = {{msg_type::global_message}};
+        response.header.size = sizeof(struct msg_global_message) - sizeof(struct msg_header);
+
+        snprintf(response.message, 256, "%s: %s", client->authName(), message->message);
+        for (auto &cli : server_clients) {
+          if (cli->active()) cli->send(&response);
+        }
+      }
+      break;
     default:
-      printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
+      printf("This message was not handled by the server.\n");
   }
 }
 

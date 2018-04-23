@@ -70,7 +70,7 @@ void Client::handleMessage(struct msg_header *header)
     case msg_type::server_handshake:
       {
         struct msg_server_handshake *handshake = (struct msg_server_handshake*)header;
-        this->ui->write("[motd] %s\n", handshake->description);
+        this->ui->write("[notice] %s\n", handshake->description);
       }
       break;
     case msg_type::server_message:
@@ -82,13 +82,30 @@ void Client::handleMessage(struct msg_header *header)
     case msg_type::auth_response:
       {
         struct msg_auth_response *response = (struct msg_auth_response*)header;
-        if (response->status == auth_status::invalid) {
-          this->ui->write("[login] Invalid password or user does not exists.\n");
+        switch(response->status) {
+          case auth_status::invalid:
+            this->ui->write("[auth] Invalid password or user does not exists.\n");
+            break;
+          case auth_status::logged_in:
+            this->state = client_state_t::logged;
+            this->ui->write("[auth] Successfully logged in.\n");
+            break;
+          case auth_status::exists:
+            this->ui->write("[auth] This username already exists.\n");
+            break;
+          case auth_status::created:
+            this->ui->write("[auth] Your account has been created.\n");
+            break;
+          case auth_status::error:
+            this->ui->write("[auth] An error occured while authorization. Please try again.\n");
+            break;
         }
-        else if (response->status == auth_status::logged_in) {
-          this->state = client_state_t::logged;
-          this->ui->write("[login] Successfully logged in.\n");
-        }
+      }
+      break;
+    case msg_type::global_message:
+      {
+        struct msg_global_message *message = (struct msg_global_message*)header;
+        this->ui->write("# %s\n", message->message);
       }
       break;
     default:
@@ -113,14 +130,22 @@ bool Client::init(void)
   return true;
 }
 
-void Client::send(struct msg_header *header)
+void Client::send(void *msg)
 {
+  struct msg_header *header = (struct msg_header*)msg;
   ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0);
 }
 
-bool Client::process_msg(char *str)
+void Client::process_msg(const char *str)
 {
-  return true;
+  if (this->guard_state("send", client_state_t::logged))
+    return;
+
+  struct msg_global_message message = {{msg_type::global_message}};
+  message.header.size = sizeof(struct msg_global_message) - sizeof(struct msg_header);
+  strcpy(message.message, str);
+
+  this->send(&message);
 }
 
 bool Client::run(void)
@@ -139,13 +164,13 @@ bool Client::guard_state(const char *prefix, client_state_t validState)
       this->ui->write("[%s] You are not connected.\n", prefix);
       break;
     case client_state_t::connected:
-      this->ui->write("[%s] You are connected to server!\n", prefix);
+      this->ui->write("[%s] You are not logged in!\n", prefix);
       break;
     case client_state_t::logged:
       this->ui->write("[%s] You are logged in.\n", prefix);
       break;
     default:
-      this->ui->write("[%s] You can not execute the command.\n", prefix);
+      this->ui->write("[%s] You can not execute this command.\n", prefix);
   }
   return true;
 }
@@ -177,20 +202,30 @@ void Client::cmd_connect(char *args)
 
 void Client::cmd_register(char *args)
 {
+  char *username, *password;
   if (this->guard_state("register", client_state_t::connected))
     return;
+  if (!this->parseParams(args, "ss", &username, &password))
+    return;
+
+  struct msg_auth_request auth_register = {{msg_type::auth_register}};
+  auth_register.header.size = sizeof(msg_auth_request) - sizeof(msg_header);
+  strcpy(auth_register.username, username);
+  strcpy(auth_register.password, password);
+
+  this->send((struct msg_header*)&auth_register);
 }
 
 void Client::cmd_login(char *args)
 {
+  char *username, *passwd;
   if (this->guard_state("login", client_state_t::connected))
     return;
+  if (!this->parseParams(args, "ss", &username, &passwd))
+    return;
 
-  char *username, *passwd;
-  if (!this->parseParams(args, "ss", &username, &passwd)) return;
-
-  struct msg_login login = {{msg_type::auth_login}};
-  login.header.size = sizeof(msg_login) - sizeof(msg_header);
+  struct msg_auth_request login = {{msg_type::auth_login}};
+  login.header.size = sizeof(msg_auth_request) - sizeof(msg_header);
   strcpy(login.username, username);
   strcpy(login.password, passwd);
 

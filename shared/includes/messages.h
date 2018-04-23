@@ -9,13 +9,16 @@ enum class msg_type : uint8_t {
   server_message = 2,
   auth_login = 3,
   auth_register = 4,
-  auth_response = 5
+  auth_response = 5,
+  global_message = 6
 };
 
 enum class auth_status : uint8_t {
   invalid = 0,
   logged_in = 1,
-  no_account = 2
+  exists = 2,
+  created = 3,
+  error = 4
 };
 
 struct msg_header {
@@ -26,14 +29,14 @@ struct msg_header {
 struct msg_server_handshake {
   struct msg_header header;
   char description[64];
-};
+} __attribute__((packed));
 
 struct msg_server {
   struct msg_header header;
   char content[128];
-};
+} __attribute__((packed));
 
-struct msg_login {
+struct msg_auth_request {
   struct msg_header header;
   char username[64];
   char password[64];
@@ -44,5 +47,9 @@ struct msg_auth_response {
   auth_status status;
 } __attribute__((packed));
 
+struct msg_global_message {
+  struct msg_header header;
+  char message[256];
+} __attribute__((packed));
 
 #endif /* MESSAGES_H */
