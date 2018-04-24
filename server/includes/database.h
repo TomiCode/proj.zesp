@@ -13,7 +13,6 @@ typedef struct {
   uint64_t password;
 } __attribute__((packed)) database_segment_t;
 
-
 class Database {
 private:
   FILE *dbfile;
