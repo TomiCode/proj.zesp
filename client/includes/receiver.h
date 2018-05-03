@@ -4,6 +4,15 @@
 #include "main.h"
 
 class Receiver {
+public:
+  Receiver(Client *owner, uint32_t size = 1024);
+  ~Receiver();
+
+  // Start the listening thread
+  void start(int socket);
+
+  // Check if the receiver is still running
+  bool is_running(void);
 private:
   Client *owner;
 
@@ -11,18 +20,12 @@ private:
   bool running;
 
   char *buffer;
-  uint32_t bufferPos;
-  uint32_t bufferSize;
+  uint32_t buffer_pos;
+  uint32_t buffer_size;
 
-  std::thread localThread;
+  std::thread local_thread;
 
-  void threadHandle(void);
-public:
-  Receiver(Client *parent, uint32_t size = 1024);
-  ~Receiver();
-
-  void start(int socket);
-  bool isRunning(void);
+  void receive_thread(void);
 };
 
 #endif // RECEIVER_H

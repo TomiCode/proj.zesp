@@ -16,8 +16,6 @@
 
 #include <curses.h>
 
-#define CONNECT_PORT 1337
-
 class Ui;
 class Client;
 class Receiver;

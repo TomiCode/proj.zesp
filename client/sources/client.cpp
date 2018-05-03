@@ -3,14 +3,14 @@
 #include "messages.h"
 #include "receiver.h"
 
-Client::Client()
+Client::Client(void)
   : state(client_state_t::invalid)
 {
   this->ui = new Ui(this);
   this->receiver = new Receiver(this);
 }
 
-Client::~Client()
+Client::~Client(void)
 {
   delete this->ui;
   delete this->receiver;
@@ -24,7 +24,7 @@ uint32_t Client::hash(const char *str)
   return base;
 }
 
-bool Client::parseParams(char *args, const char *fmt, ...)
+bool Client::parse_params(char *args, const char *fmt, ...)
 {
   if (args == NULL) {
     this->ui->write("[exec] Command expected %d parameter(s).\n", strlen(fmt));
@@ -64,7 +64,7 @@ bool Client::parseParams(char *args, const char *fmt, ...)
   return true;
 }
 
-void Client::handleMessage(struct msg_header *header)
+void Client::handle_message(struct msg_header *header)
 {
   switch(header->type) {
     case msg_type::server_handshake:
@@ -136,7 +136,7 @@ void Client::send(void *msg)
   ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0);
 }
 
-void Client::process_msg(const char *str)
+void Client::handle_input(const char *str)
 {
   if (this->guard_state("send", client_state_t::logged))
     return;
@@ -180,7 +180,7 @@ void Client::cmd_connect(char *args)
   char *ip_addr; int port;
   if (this->guard_state("connect", client_state_t::notconnected))
       return;
-  if (!this->parseParams(args, "si", &ip_addr, &port))
+  if (!this->parse_params(args, "si", &ip_addr, &port))
     return;
 
   struct sockaddr_in address = {0};
@@ -205,7 +205,7 @@ void Client::cmd_register(char *args)
   char *username, *password;
   if (this->guard_state("register", client_state_t::connected))
     return;
-  if (!this->parseParams(args, "ss", &username, &password))
+  if (!this->parse_params(args, "ss", &username, &password))
     return;
 
   struct msg_auth_request auth_register = {{msg_type::auth_register}};
@@ -221,7 +221,7 @@ void Client::cmd_login(char *args)
   char *username, *passwd;
   if (this->guard_state("login", client_state_t::connected))
     return;
-  if (!this->parseParams(args, "ss", &username, &passwd))
+  if (!this->parse_params(args, "ss", &username, &passwd))
     return;
 
   struct msg_auth_request login = {{msg_type::auth_login}};

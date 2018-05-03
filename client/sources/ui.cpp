@@ -2,7 +2,7 @@
 #include "client.h"
 
 Ui::Ui(Client *owner)
-  : parent(owner),
+  : owner(owner),
     root_wnd(NULL),
     cmd_wnd(NULL),
     messages_wnd(NULL),
@@ -98,14 +98,14 @@ void Ui::process(void)
 void Ui::process_buffers(void)
 {
   if (this->cmd_mode == ui_mode_t::command || this->cmd_mode == ui_mode_t::params) {
-    auto command_it = this->commands.find(this->parent->hash(this->buffers.begin));
+    auto command_it = this->commands.find(this->owner->hash(this->buffers.begin));
     if (command_it == this->commands.end())
       this->write("[exec] Command %s does not exists.\n", this->buffers.begin);
     else
-      (this->parent->*command_it->second)(this->buffers.params);
+      (this->owner->*command_it->second)(this->buffers.params);
   }
-  else
-    this->parent->process_msg(this->buffers.begin);
+  else // That is not a command..
+    this->owner->handle_input(this->buffers.begin);
 }
 
 void Ui::reset_buffers(void)

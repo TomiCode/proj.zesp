@@ -20,8 +20,8 @@ typedef void (Client::*command_fn_t)(char *args);
 
 class Ui {
 private:
-  // Our global client manager
-  Client *parent;
+  // Client instance
+  Client *owner;
 
   // Curses windowses
   WINDOW *root_wnd;
@@ -44,9 +44,16 @@ public:
   Ui(Client *owner);
   ~Ui();
 
+  // Initialize terminal screen and ncurses window instances
   bool init(void);
+
+  // Process character input from a user
   void process(void);
+
+  // Write something into the message window
   void write(const char *fmt, ...);
+
+  // Register a command listener
   void register_command(const char *, command_fn_t);
 };
 

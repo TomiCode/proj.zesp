@@ -3,6 +3,7 @@
 
 #include "main.h"
 
+// Describes the client state for the client instance
 enum class client_state_t : uint8_t {
   invalid = 0,
   notconnected = 1,
@@ -12,34 +13,44 @@ enum class client_state_t : uint8_t {
 };
 
 class Client {
+public:
+  Client(void);
+  ~Client(void);
+
+  // Register all commands and initialize the socket
+  bool init(void);
+
+  // Send a message to the server
+  void send(void *msg);
+
+  // Main thread for client work (ui tasks related)
+  bool run(void);
+
+  // Process input data, that is not a command
+  void handle_input(const char *str);
+
+  // Parse parameters from a command request
+  bool parse_params(char *args, const char *fmt, ...);
+
+  // Handle received message according to the message type
+  void handle_message(struct msg_header *header);
+
+  // Calculate a hash value based on the input string (NUL-terminated)
+  static uint32_t hash(const char *str);
 private:
   Ui *ui;
   Receiver *receiver;
-  client_state_t state;
 
+  client_state_t state;
   int socket;
 
+  // Guard for command execution states
   bool guard_state(const char *perfix, client_state_t validState);
 
+  // Client command methods
   void cmd_connect(char *args);
   void cmd_register(char *args);
   void cmd_login(char *args);
-public:
-  Client();
-  ~Client();
-
-  static uint32_t hash(const char *str);
-  bool parseParams(char *ptr, const char *fmt, ...);
-
-  void handleMessage(struct msg_header *header);
-
-  bool init(void);
-  
-  void process_msg(const char *str);
-  bool run(void);
-  void send(void *msg);
-
-
 };
 
 #endif // CLIENT_H

@@ -2,12 +2,12 @@
 #include "messages.h"
 #include "client.h"
 
-Receiver::Receiver(Client *parent, uint32_t size)
-  : owner(parent),
+Receiver::Receiver(Client *owner, uint32_t size)
+  : owner(owner),
     socket(0),
     running(false),
-    bufferPos(0),
-    bufferSize(size)
+    buffer_pos(0),
+    buffer_size(size)
 {
   this->buffer = (char*)malloc(sizeof(char) * size);
 }
@@ -20,14 +20,14 @@ Receiver::~Receiver()
     free(this->buffer);
 }
 
-void Receiver::threadHandle(void)
+void Receiver::receive_thread(void)
 {
   struct msg_header *header = (struct msg_header*)this->buffer;
-  const uint32_t partialSize = (uint32_t)(this->bufferSize / 2);
+  const uint32_t partial_size = (uint32_t)(this->buffer_size / 2);
   uint32_t result = 0;
 
   while(this->running) {
-    result = recv(this->socket, this->buffer + this->bufferPos, partialSize, 0);
+    result = recv(this->socket, this->buffer + this->buffer_pos, partial_size, 0);
     if (result == 0) {
       this->running = false;
       break;
@@ -35,26 +35,28 @@ void Receiver::threadHandle(void)
     else if (result == -1)
       continue;
 
-    this->bufferPos += result;
-    if (header->size > this->bufferPos)
+    this->buffer_pos += result;
+    if (header->size > this->buffer_pos)
       continue;
 
-    this->owner->handleMessage(header);
+    // This message is complete and the client should take care of
+    this->owner->handle_message(header);
 
-    result = this->bufferPos - (sizeof(struct msg_header) + header->size);
-    memmove(this->buffer, this->buffer + this->bufferPos, result);
-    this->bufferPos = result;
+    // Move the unused memory to the beginning of the buffer
+    result = this->buffer_pos - (sizeof(struct msg_header) + header->size);
+    memmove(this->buffer, this->buffer + this->buffer_pos, result);
+    this->buffer_pos = result;
   }
 }
 
 void Receiver::start(int socket)
 {
   this->socket = socket;
-  this->localThread = std::thread(&Receiver::threadHandle, this);
+  this->local_thread = std::thread(&Receiver::receive_thread, this);
   this->running = true;
 }
 
-bool Receiver::isRunning(void)
+bool Receiver::is_running(void)
 {
   return this->running;
 }
