@@ -24,7 +24,8 @@ uint64_t Database::hash(const char *str)
 
 void Database::check(void)
 {
-  this->mtx.lock();
+  std::lock_guard<std::mutex> lock(this->mtx);
+
   fseek(this->dbfile, 0, SEEK_SET);
   database_head_t header = {0};
 
@@ -38,11 +39,11 @@ void Database::check(void)
     fflush(this->dbfile);
   }
   printf("Database loaded, %d users.\n", header.users);
-  this->mtx.unlock();
 }
 
-bool Database::_create(const char *username, uint64_t password)
+bool Database::create(const char *username, const char *password)
 {
+  std::lock_guard<std::mutex> lock(this->mtx);
   database_head_t header = {0};
 
   // Check database header.
@@ -54,7 +55,7 @@ bool Database::_create(const char *username, uint64_t password)
 
   // Create new user segment
   database_segment_t new_segment = {{}};
-  new_segment.password = password;
+  new_segment.password = this->hash(password);
   strcpy(new_segment.username, username);
 
   // Write the segment into the file
@@ -73,16 +74,9 @@ bool Database::_create(const char *username, uint64_t password)
   return valid;
 }
 
-bool Database::create(const char *username, const char *password)
+bool Database::exists(const char *username)
 {
-  this->mtx.lock();
-  bool result = this->_create(username, this->hash(password));
-  this->mtx.unlock();
-  return result;
-}
-
-bool Database::_exists(const char *username)
-{
+  std::lock_guard<std::mutex> lock(this->mtx);
   database_head_t header = {0};
 
   // Read database header
@@ -107,42 +101,29 @@ bool Database::_exists(const char *username)
   return false;
 }
 
-bool Database::exists(const char *username)
+bool Database::authorize(const char *username, const char *password)
 {
-  this->mtx.lock();
-  bool result = this->_exists(username);
-  this->mtx.unlock();
-  return result;
-}
-
-bool Database::_authorize(const char *username, uint64_t password)
-{
+  std::lock_guard<std::mutex> lock(this->mtx);
   database_head_t header = {0};
+
   fseek(this->dbfile, 0, SEEK_SET);
   if (fread(&header, sizeof(database_head_t), 1, this->dbfile) != 1) {
     printf("Invalid database header!\n");
     return false;
   }
 
+  uint64_t passwd = this->hash(password);
   database_segment_t segment = {{}};
+
   for (uint16_t i = 0; i < header.users; i++) {
     if (fread(&segment, sizeof(database_segment_t), 1, this->dbfile) != 1) {
       printf("Can not read %d segment from user database.\n", i);
       break;
     }
     if (strcmp(segment.username, username) == 0) {
-      return (segment.password == password);
+      return (segment.password == passwd);
     }
   }
+
   return false;
-
 }
-
-bool Database::authorize(const char *username, const char *password)
-{
-  this->mtx.lock();
-  bool result = this->_authorize(username, this->hash(password));
-  this->mtx.unlock();
-  return result;
-}
-

@@ -21,7 +21,7 @@
 
 class Client;
 
-extern void client_message(struct msg_header *, Client *client);
-extern void client_disconnect(Client *client);
+extern void event_on_client_message(Client* sender, struct msg_header* header);
+extern void event_on_client_disconnect(Client* sender);
 
 #endif

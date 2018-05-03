@@ -5,30 +5,37 @@
 #include "messages.h"
 
 class Client {
-private:
-  bool valid;
-  bool logged;
-
-  uint8_t *buffer_ptr;
-  uint32_t buffer_size;
-  uint32_t buffer_position;
-
-  int32_t socket;
-  char username[64];
-
-  std::thread _local_thread;
-  void _recv_thread(void);
-
 public:
   Client(uint32_t b_size, int32_t socket);
   ~Client(void);
 
-  Client* handshake(struct msg_server_handshake *handshake);
-  bool send(void *ptr_header);
-  void setLogin(const char *username);
+  // Start the clients listening thread
+  Client* init(void);
 
-  const char *authName(void);
-  bool active(void);
+  // Send a message to the client
+  bool send(void* msg);
+
+  // Assign to the user a nickname (after a succeeded login)
+  void set_login(const char* username);
+
+  // Get the nickname assigned to the user
+  const char* name(void);
+
+  // Check if the client is valid and the thread waits for messages
+  bool is_active(void);
+private:
+  bool valid;
+  bool logged;
+
+  uint8_t *buffer;
+  uint32_t buffer_pos;
+  uint32_t buffer_size;
+
+  int32_t socket;
+  char username[64];
+
+  std::thread local_thread;
+  void receive_thread(void);
 };
 
 #endif // CLIENT_H

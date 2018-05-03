@@ -14,13 +14,6 @@ typedef struct {
 } __attribute__((packed)) database_segment_t;
 
 class Database {
-private:
-  FILE *dbfile;
-  std::mutex mtx;
-
-  bool _create(const char *username, uint64_t password);
-  bool _exists(const char *username);
-  bool _authorize(const char *username, uint64_t password);
 public:
   Database(const char *filepath);
   ~Database();
@@ -31,6 +24,9 @@ public:
   bool create(const char *username, const char *password);
   bool exists(const char *username);
   bool authorize(const char *username, const char *password);
+private:
+  FILE *dbfile;
+  std::mutex mtx;
 };
 
 #endif // DATABASE_H

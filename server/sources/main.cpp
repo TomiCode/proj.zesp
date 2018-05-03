@@ -6,7 +6,8 @@
 Database users_db("users.wtf");
 std::vector<Client*> server_clients;
 
-void client_message(struct msg_header *header, Client *client)
+// Called when a client receives a complete message
+void event_on_client_message(Client* sender, struct msg_header* header)
 {
   printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
   switch(header->type) {
@@ -19,12 +20,12 @@ void client_message(struct msg_header *header, Client *client)
         response.header.size = sizeof(struct msg_auth_response) - sizeof(struct msg_header);
 
         if (users_db.authorize(login->username, login->password)) {
-          client->setLogin(login->username);
+          sender->set_login(login->username);
           response.status = auth_status::logged_in;
         }
         else
           response.status = auth_status::invalid;
-        client->send(&response);
+        sender->send(&response);
       }
       break;
     case msg_type::auth_register:
@@ -45,20 +46,20 @@ void client_message(struct msg_header *header, Client *client)
           else
             response.status = auth_status::created;
         }
-        client->send(&response);
+        sender->send(&response);
       }
       break;
     case msg_type::global_message:
       {
-        struct msg_global_message *message = (struct msg_global_message*)header;
-        printf("Global message send by %s.\n", client->authName());
+        struct msg_global_message *msg = (struct msg_global_message*)header;
+        printf("Global message send by %s.\n", sender->name());
 
         struct msg_global_message response = {{msg_type::global_message}};
         response.header.size = sizeof(struct msg_global_message) - sizeof(struct msg_header);
 
-        snprintf(response.message, 256, "%s: %s", client->authName(), message->message);
+        snprintf(response.message, 256, "%s: %s", sender->name(), msg->message);
         for (auto &cli : server_clients) {
-          if (cli->active()) cli->send(&response);
+          if (cli->is_active()) cli->send(&response);
         }
       }
       break;
@@ -67,7 +68,8 @@ void client_message(struct msg_header *header, Client *client)
   }
 }
 
-void client_disconnect(Client *client)
+// Called when a client disconnects from the server
+void event_on_client_disconnect(Client *sender)
 {
 
 }
@@ -106,14 +108,15 @@ int main(int argc, char** argv)
   users_db.check();
   printf("Hello, server is waiting for connections on :%d.\n", LISTEN_PORT);
 
+  int accept_socket;
   struct msg_server_handshake handshake = {{msg_type::server_handshake, 0}, "Hello on the server! Please login or register."};
   handshake.header.size = sizeof(struct msg_server_handshake) - sizeof(struct msg_header);
-  int accept_socket;
 
-  while(1) {
+  while(true) {
     if ((accept_socket = accept(srv_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))) {
-      Client *client_ptr = new Client(1024, accept_socket);
-      server_clients.push_back(client_ptr->handshake(&handshake));
+      Client *client = new Client(1024, accept_socket);
+      server_clients.push_back(client->init());
+      client->send(&handshake);
     }
   }
 
