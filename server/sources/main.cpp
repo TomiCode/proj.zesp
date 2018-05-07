@@ -40,7 +40,7 @@ void event_on_client_message(Client* sender, struct msg_header* header)
         }
         else {
           if (!users_db.create(auth_register->username, auth_register->password)) {
-            printf("Error occured while user %s creation.\n", auth_register->username);
+            printf("Error occurred while user %s creation.\n", auth_register->username);
             response.status = auth_status::error;
           }
           else
