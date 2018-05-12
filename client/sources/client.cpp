@@ -1,20 +1,16 @@
-#include "client.h"
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
 #include "ui.h"
-#include "messages.h"
 #include "receiver.h"
+#include "messages.h"
+#include "client.h"
 
 Client::Client(void)
-  : state(client_state_t::invalid)
-{
-  this->ui = new Ui(this);
-  this->receiver = new Receiver(this);
-}
-
-Client::~Client(void)
-{
-  delete this->ui;
-  delete this->receiver;
-}
+  : m_ui(this),
+    m_receiver(this),
+    m_state(client_state_t::invalid)
+{ }
 
 uint32_t Client::hash(const char *str)
 {
@@ -27,7 +23,7 @@ uint32_t Client::hash(const char *str)
 bool Client::parse_params(char *args, const char *fmt, ...)
 {
   if (args == NULL) {
-    this->ui->write("[exec] Command expected %d parameter(s).\n", strlen(fmt));
+    m_ui.write("[exec] Command expected %d parameter(s).\n", strlen(fmt));
     return false;
   }
 
@@ -58,7 +54,7 @@ bool Client::parse_params(char *args, const char *fmt, ...)
   va_end(params);
 
   if (*fmt != '\0') {
-    this->ui->write("[exec] To few command parameters.\n");
+    m_ui.write("[exec] To few command parameters.\n");
     return false;
   }
   return true;
@@ -70,13 +66,13 @@ void Client::handle_message(struct msg_header *header)
     case msg_type::server_handshake:
       {
         struct msg_server_handshake *handshake = (struct msg_server_handshake*)header;
-        this->ui->write("[notice] %s\n", handshake->description);
+        m_ui.write("[notice] %s\n", handshake->description);
       }
       break;
     case msg_type::server_message:
       {
         struct msg_server *message = (struct msg_server*)header;
-        this->ui->write("[server] %s\n", message->content);
+        m_ui.write("[server] %s\n", message->content);
       }
       break;
     case msg_type::auth_response:
@@ -84,20 +80,20 @@ void Client::handle_message(struct msg_header *header)
         struct msg_auth_response *response = (struct msg_auth_response*)header;
         switch(response->status) {
           case auth_status::invalid:
-            this->ui->write("[auth] Invalid password or user does not exists.\n");
+            m_ui.write("[auth] Invalid password or user does not exists.\n");
             break;
           case auth_status::logged_in:
-            this->state = client_state_t::logged;
-            this->ui->write("[auth] Successfully logged in.\n");
+            m_state = client_state_t::logged;
+            m_ui.write("[auth] Successfully logged in.\n");
             break;
           case auth_status::exists:
-            this->ui->write("[auth] This username already exists.\n");
+            m_ui.write("[auth] This username already exists.\n");
             break;
           case auth_status::created:
-            this->ui->write("[auth] Your account has been created.\n");
+            m_ui.write("[auth] Your account has been created.\n");
             break;
           case auth_status::error:
-            this->ui->write("[auth] An error occured while authorization. Please try again.\n");
+            m_ui.write("[auth] An error occured while authorization. Please try again.\n");
             break;
         }
       }
@@ -105,72 +101,71 @@ void Client::handle_message(struct msg_header *header)
     case msg_type::global_message:
       {
         struct msg_global_message *message = (struct msg_global_message*)header;
-        this->ui->write("# %s\n", message->message);
+        m_ui.write("# %s\n", message->message);
       }
       break;
     default:
-      this->ui->write("[?] message received, type: %04x.\n", header->type);
+      m_ui.write("[?] message received, type: %04x.\n", header->type);
   }
 }
 
 bool Client::init(void)
 {
-  if (!this->ui->init())
+  if (!m_ui.init())
     return false;
-  if (!(this->socket = ::socket(AF_INET, SOCK_STREAM, 0)))
+  if (!(m_socket = ::socket(AF_INET, SOCK_STREAM, 0)))
     return false;
 
-  this->ui->register_command("connect", &Client::cmd_connect);
-  this->ui->register_command("register", &Client::cmd_register);
-  this->ui->register_command("login", &Client::cmd_login);
+  m_ui.register_command("connect", &Client::cmd_connect);
+  m_ui.register_command("register", &Client::cmd_register);
+  m_ui.register_command("login", &Client::cmd_login);
 
-  this->state = client_state_t::notconnected;
-  this->ui->write("Hello to super epic chat client v1.3.3.7\n");
-  
+  m_state = client_state_t::notconnected;
+  m_ui.write("Hello to super epic chat client v1.3.3.7\n");
+
   return true;
 }
 
 void Client::send(void *msg)
 {
-  struct msg_header *header = (struct msg_header*)msg;
-  ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0);
+  msg_header *header = (msg_header *)msg;
+  ::send(m_socket, header, sizeof(msg_header) + header->size, 0);
 }
 
 void Client::handle_input(const char *str)
 {
-  if (this->guard_state("send", client_state_t::logged))
+  if (guard_state("send", client_state_t::logged))
     return;
 
-  struct msg_global_message message = {{msg_type::global_message}};
-  message.header.size = sizeof(struct msg_global_message) - sizeof(struct msg_header);
-  strcpy(message.message, str);
-
-  this->send(&message);
+  msg_global_message message = {{msg_type::global_message}};
+  message.header.size = sizeof(msg_global_message) - sizeof(msg_header);
+  strncpy(message.message, str, sizeof(message.message));
+  send(&message);
 }
 
 bool Client::run(void)
 {
-  this->ui->process();
+  m_ui.process();
   return true;
 }
 
 bool Client::guard_state(const char *prefix, client_state_t validState)
 {
-  if (this->state == validState)
+  if (m_state == validState)
     return false;
 
-  switch(this->state) {
+  switch(m_state) {
     case client_state_t::notconnected:
-      this->ui->write("[%s] You are not connected.\n", prefix);
+      m_ui.write("[%s] You are not connected.\n", prefix);
       break;
     case client_state_t::connected:
-      this->ui->write("[%s] You are not logged in!\n", prefix);
+      m_ui.write("[%s] You are not logged in!\n", prefix);
       break;
     case client_state_t::logged:
-      this->ui->write("[%s] You are logged in.\n", prefix);
+      m_ui.write("[%s] You are logged in.\n", prefix);
       break;
     default:
-      this->ui->write("[%s] You can not execute this command.\n", prefix);
+      m_ui.write("[%s] You can not execute this command.\n", prefix);
   }
   return true;
 }
@@ -178,9 +173,9 @@ bool Client::guard_state(const char *prefix, client_state_t validState)
 void Client::cmd_connect(char *args)
 {
   char *ip_addr; int port;
-  if (this->guard_state("connect", client_state_t::notconnected))
+  if (guard_state("connect", client_state_t::notconnected))
       return;
-  if (!this->parse_params(args, "si", &ip_addr, &port))
+  if (!parse_params(args, "si", &ip_addr, &port))
     return;
 
   struct sockaddr_in address = {0};
@@ -188,46 +183,46 @@ void Client::cmd_connect(char *args)
   address.sin_port = htons(port);
 
   if (!inet_pton(AF_INET, ip_addr, &address.sin_addr)) {
-    this->ui->write("connect: invalid or unsupported address.\n");
+    m_ui.write("connect: invalid or unsupported address.\n");
     return;
   }
 
-  if (connect(this->socket, (struct sockaddr*)&address, sizeof(address))) {
-    this->ui->write("connect: can not connect to server at :%d.\n", port);
+  if (connect(m_socket, (struct sockaddr*)&address, sizeof(address))) {
+    m_ui.write("connect: can not connect to server at :%d.\n", port);
     return;
   }
-  this->receiver->start(this->socket);
-  this->state = client_state_t::connected;
+  m_receiver.start(m_socket);
+  m_state = client_state_t::connected;
 }
 
 void Client::cmd_register(char *args)
 {
   char *username, *password;
-  if (this->guard_state("register", client_state_t::connected))
+  if (guard_state("register", client_state_t::connected))
     return;
-  if (!this->parse_params(args, "ss", &username, &password))
+  if (!parse_params(args, "ss", &username, &password))
     return;
 
-  struct msg_auth_request auth_register = {{msg_type::auth_register}};
+  msg_auth_request auth_register = {{msg_type::auth_register}};
   auth_register.header.size = sizeof(msg_auth_request) - sizeof(msg_header);
   strcpy(auth_register.username, username);
   strcpy(auth_register.password, password);
 
-  this->send((struct msg_header*)&auth_register);
+  send(&auth_register);
 }
 
 void Client::cmd_login(char *args)
 {
   char *username, *passwd;
-  if (this->guard_state("login", client_state_t::connected))
+  if (guard_state("login", client_state_t::connected))
     return;
-  if (!this->parse_params(args, "ss", &username, &passwd))
+  if (!parse_params(args, "ss", &username, &passwd))
     return;
 
-  struct msg_auth_request login = {{msg_type::auth_login}};
+  msg_auth_request login = {{msg_type::auth_login}};
   login.header.size = sizeof(msg_auth_request) - sizeof(msg_header);
   strcpy(login.username, username);
   strcpy(login.password, passwd);
 
-  this->send((struct msg_header*)&login);
+  send(&login);
 }

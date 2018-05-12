@@ -1,7 +1,11 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "main.h"
+#include <iostream>
+#include <stdint.h>
+
+#include "ui.h"
+#include "receiver.h"
 
 // Describes the client state for the client instance
 enum class client_state_t : uint8_t {
@@ -15,13 +19,12 @@ enum class client_state_t : uint8_t {
 class Client {
 public:
   Client(void);
-  ~Client(void);
 
   // Register all commands and initialize the socket
   bool init(void);
 
   // Send a message to the server
-  void send(void *msg);
+  void send(void* msg);
 
   // Main thread for client work (ui tasks related)
   bool run(void);
@@ -38,11 +41,11 @@ public:
   // Calculate a hash value based on the input string (NUL-terminated)
   static uint32_t hash(const char *str);
 private:
-  Ui *ui;
-  Receiver *receiver;
+  Ui m_ui;
+  Receiver m_receiver;
 
-  client_state_t state;
-  int socket;
+  client_state_t m_state;
+  int m_socket;
 
   // Guard for command execution states
   bool guard_state(const char *perfix, client_state_t validState);

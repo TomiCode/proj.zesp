@@ -1,4 +1,4 @@
-#include "main.h"
+#include <stdio.h>
 #include "client.h"
 
 int main(int argc, char** argv)
@@ -10,6 +10,6 @@ int main(int argc, char** argv)
 
   // Wait until the client is working
   while(client.run());
-  
+
   return 0;
 }

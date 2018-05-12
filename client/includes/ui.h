@@ -1,7 +1,13 @@
 #ifndef UI_H
 #define UI_H
 
-#include "main.h"
+#include <iostream>
+#include <unordered_map>
+
+#include <stdint.h>
+#include <curses.h>
+
+class Client;
 
 typedef struct {
   char *begin;
@@ -21,21 +27,21 @@ typedef void (Client::*command_fn_t)(char *args);
 class Ui {
 private:
   // Client instance
-  Client *owner;
+  Client *m_owner;
 
   // Curses windowses
-  WINDOW *root_wnd;
-  WINDOW *cmd_wnd;
-  WINDOW *messages_wnd;
+  WINDOW *m_root_wnd;
+  WINDOW *m_cmd_wnd;
+  WINDOW *m_messages_wnd;
 
   // Current input mode
-  ui_mode_t cmd_mode;
+  ui_mode_t m_ui_mode;
 
   // Buffers
-  input_buffers_t buffers;
-  
-  // Commands map 
-  std::unordered_map<uint32_t, command_fn_t> commands;
+  input_buffers_t m_buffers;
+
+  // Commands map
+  std::unordered_map<uint32_t, command_fn_t> m_commands;
 
   // Process collected data
   void process_buffers(void);

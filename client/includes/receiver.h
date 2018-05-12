@@ -1,7 +1,11 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "main.h"
+#include <iostream>
+#include <thread>
+#include <stdint.h>
+
+class Client;
 
 class Receiver {
 public:
@@ -14,16 +18,16 @@ public:
   // Check if the receiver is still running
   bool is_running(void);
 private:
-  Client *owner;
+  Client *m_owner;
 
-  int socket;
-  bool running;
+  int m_socket;
+  bool m_running;
 
-  char *buffer;
-  uint32_t buffer_pos;
-  uint32_t buffer_size;
+  char *m_buffer;
+  uint32_t m_buffer_pos;
+  uint32_t m_buffer_size;
 
-  std::thread local_thread;
+  std::thread m_thread;
 
   void receive_thread(void);
 };
