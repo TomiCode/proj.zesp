@@ -1,23 +1,36 @@
-#include "main.h"
-#include "client.h"
+#include <iostream>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <inttypes.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #include "messages.h"
+#include "client.h"
 #include "database.h"
+
+#define EXIT_FAIL -1
+#define LISTEN_MAX_CONN 16
+#define LISTEN_PORT 1337
 
 Database users_db("users.wtf");
 std::vector<Client*> server_clients;
 
 // Called when a client receives a complete message
-void event_on_client_message(Client* sender, struct msg_header* header)
+void event_on_client_message(Client *sender, msg_header *header)
 {
   printf("Message got from client, type: %hhu, size: %u.\n", header->type, header->size);
   switch(header->type) {
     case msg_type::auth_login:
       {
-        struct msg_auth_request *login = (struct msg_auth_request*)header;
+        auto *login = (msg_auth_request *)header;
         printf("Processing login for user %s.\n", login->username);
 
-        struct msg_auth_response response = {{msg_type::auth_response}};
-        response.header.size = sizeof(struct msg_auth_response) - sizeof(struct msg_header);
+        msg_auth_response response = {{msg_type::auth_response}};
+        response.header.size = sizeof(msg_auth_response) - sizeof(msg_header);
 
         if (users_db.authorize(login->username, login->password)) {
           sender->set_login(login->username);
@@ -30,11 +43,11 @@ void event_on_client_message(Client* sender, struct msg_header* header)
       break;
     case msg_type::auth_register:
       {
-        struct msg_auth_request *auth_register = (struct msg_auth_request*)header;
+        auto *auth_register = (msg_auth_request *)header;
         printf("Register new user %s, but first checking if exists..\n", auth_register->username);
 
-        struct msg_auth_response response = {{msg_type::auth_response}};
-        response.header.size = sizeof(struct msg_auth_response) - sizeof(struct msg_header);
+        msg_auth_response response = {{msg_type::auth_response}};
+        response.header.size = sizeof(msg_auth_response) - sizeof(msg_header);
         if (users_db.exists(auth_register->username)) {
           response.status = auth_status::exists;
         }
@@ -51,11 +64,11 @@ void event_on_client_message(Client* sender, struct msg_header* header)
       break;
     case msg_type::global_message:
       {
-        struct msg_global_message *msg = (struct msg_global_message*)header;
+        auto *msg = (msg_global_message *)header;
         printf("Global message send by %s.\n", sender->name());
 
-        struct msg_global_message response = {{msg_type::global_message}};
-        response.header.size = sizeof(struct msg_global_message) - sizeof(struct msg_header);
+        msg_global_message response = {{msg_type::global_message}};
+        response.header.size = sizeof(msg_global_message) - sizeof(msg_header);
 
         snprintf(response.message, 256, "%s: %s", sender->name(), msg->message);
         for (auto &cli : server_clients) {
@@ -95,7 +108,7 @@ int main(int argc, char** argv)
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
 
-  if (bind(srv_fd, (struct sockaddr*)&address, sizeof(address))) {
+  if (bind(srv_fd, (struct sockaddr *)&address, sizeof(address))) {
     perror("bind");
     exit(EXIT_FAIL);
   }
@@ -109,11 +122,11 @@ int main(int argc, char** argv)
   printf("Hello, server is waiting for connections on :%d.\n", LISTEN_PORT);
 
   int accept_socket;
-  struct msg_server_handshake handshake = {{msg_type::server_handshake, 0}, "Hello on the server! Please login or register."};
-  handshake.header.size = sizeof(struct msg_server_handshake) - sizeof(struct msg_header);
+  msg_server_handshake handshake = {{msg_type::server_handshake, 0}, "Hello on the server! Please login or register."};
+  handshake.header.size = sizeof(msg_server_handshake) - sizeof(msg_header);
 
   while(true) {
-    if ((accept_socket = accept(srv_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))) {
+    if ((accept_socket = accept(srv_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))) {
       Client *client = new Client(1024, accept_socket);
       server_clients.push_back(client->init());
       client->send(&handshake);

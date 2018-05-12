@@ -1,87 +1,92 @@
+#include <unistd.h>
+#include <sys/socket.h>
+
+#include "messages.h"
 #include "client.h"
 
 Client::Client(uint32_t b_size, int32_t socket)
-  : valid(true),
-    logged(false),
-    buffer_pos(0),
-    socket(socket)
+  : m_valid(true),
+    m_logged(false),
+    m_buffer_pos(0),
+    m_socket(socket)
 {
-  printf("Hello new client at socket %d.\n", socket);
-  this->buffer = (uint8_t*)malloc(sizeof(uint8_t) * b_size);
-  this->buffer_size = b_size;
+  printf("Hello new client at socket %d.\n", m_socket);
+  m_buffer = (uint8_t *)malloc(sizeof(uint8_t) * b_size);
+  m_buffer_size = b_size;
 }
 
 Client::~Client(void)
 {
-  if (this->buffer)
-    free(this->buffer);
-  if (this->socket)
-    close(this->socket);
+  if (m_socket)
+    close(m_socket);
+
+  if (m_buffer)
+    free(m_buffer);
 }
 
 Client* Client::init(void)
 {
-  this->local_thread = std::thread(&Client::receive_thread, this);
+  m_thread = std::thread(&Client::receive_thread, this);
   return this;
 }
 
 bool Client::send(void *msg)
 {
-  struct msg_header *header = (struct msg_header*)msg;
-  return ::send(this->socket, header, sizeof(struct msg_header) + header->size, 0) != -1;
+  msg_header *header = (msg_header *)msg;
+  return ::send(m_socket, header, sizeof(msg_header) + header->size, 0) != -1;
 }
 
 void Client::set_login(const char *username)
 {
-  strcpy(this->username, username);
-  this->logged = true;
+  strncpy(m_username, username, sizeof(m_username));
+  m_logged = true;
 }
 
 const char* Client::name(void)
 {
-  return this->username;
+  return m_username;
 }
 
 bool Client::is_active(void)
 {
-  return (this->valid && this->logged);
+  return (m_valid && m_logged);
 }
 
 void Client::receive_thread(void)
 {
-  struct msg_header *buffer_message = (struct msg_header*)this->buffer; 
-  const uint32_t recv_size = (uint32_t)(this->buffer_size / 2);
+  msg_header *buffer_message = (msg_header *)m_buffer;
+  const uint32_t recv_size = (uint32_t)(m_buffer_size / 2);
   uint32_t result = 0;
 
-  printf("Client %d thread started.\n", this->socket);
+  printf("Client %d thread started.\n", m_socket);
 
-  while(this->valid) {
-    result = recv(this->socket, this->buffer + this->buffer_pos, recv_size, 0);
+  while(m_valid) {
+    result = recv(m_socket, m_buffer + m_buffer_pos, recv_size, 0);
     if (result == 0) {
-      printf("Client socket %d disconnected.\n", this->socket);
-      this->valid = false;
+      printf("Client socket %d disconnected.\n", m_socket);
+      m_valid = false;
       break;
     }
     else if (result == -1) {
-      printf("Error occurred while receiving data in client %d.\n", this->socket);
+      printf("Error occurred while receiving data in client %d.\n", m_socket);
       continue;
     }
 
-    this->buffer_pos += result;
-    if (buffer_message->size > this->buffer_pos)
+    m_buffer_pos += result;
+    if (m_buffer_pos < buffer_message->size)
       continue; // We don't have enough data to handle.
 
     // Trigger the server event function, that the client received a complete message
     event_on_client_message(this, buffer_message);
-    
+
     // Content that left in the buffer.
-    result = this->buffer_pos - (sizeof(struct msg_header) + buffer_message->size);
-    
+    result = m_buffer_pos - (sizeof(struct msg_header) + buffer_message->size);
+
     // Move the remaining content to the buffer beginning.
-    memmove(this->buffer, this->buffer + this->buffer_pos, result);
-    this->buffer_pos = result;
+    memmove(m_buffer, m_buffer + m_buffer_pos, result);
+    m_buffer_pos = result;
   }
-  printf("Client %d receive thread stopped.\n", this->socket);
+  printf("Client %d receive thread stopped.\n", m_socket);
 
   // Trigger client disconnected server event function
   event_on_client_disconnect(this);

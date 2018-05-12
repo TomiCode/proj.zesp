@@ -1,7 +1,12 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include "main.h"
+#include <iostream>
+#include <mutex>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   uint16_t _version;
@@ -25,8 +30,8 @@ public:
   bool exists(const char *username);
   bool authorize(const char *username, const char *password);
 private:
-  FILE *dbfile;
-  std::mutex mtx;
+  FILE *m_dbfile;
+  std::mutex m_mutex;
 };
 
 #endif // DATABASE_H
