@@ -81,7 +81,7 @@ void Ui::process(void)
       else if (m_ui_mode == ui_mode_t::params || m_ui_mode == ui_mode_t::message)
         *(m_buffers.input++) = _char;
       break;
-    case ':':
+    case '/':
       if (m_ui_mode == ui_mode_t::invalid) {
         m_ui_mode = ui_mode_t::command;
         break;

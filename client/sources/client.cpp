@@ -32,7 +32,14 @@ bool Client::parse_params(char *args, const char *fmt, ...)
 
   va_start(params, fmt);
   for (; *fmt != '\0'; fmt++) {
-    if (*lastBuffer == '\0') break;
+    if (*lastBuffer == '\0')
+      break;
+
+    if (*fmt == 't') {
+      char **param = va_arg(params, char**);
+      *param = args;
+      break;
+    }
 
     for (; *args != '\0'; args++) {
       if (*args == ' ') {
@@ -71,13 +78,13 @@ void Client::handle_message(struct msg_header *header)
       break;
     case msg_type::server_message:
       {
-        struct msg_server *message = (struct msg_server*)header;
+        msg_server *message = (msg_server *)header;
         m_ui.write("[server] %s\n", message->content);
       }
       break;
     case msg_type::auth_response:
       {
-        struct msg_auth_response *response = (struct msg_auth_response*)header;
+        msg_auth_response *response = (msg_auth_response *)header;
         switch(response->status) {
           case auth_status::invalid:
             m_ui.write("[auth] Invalid password or user does not exists.\n");
@@ -100,7 +107,7 @@ void Client::handle_message(struct msg_header *header)
       break;
     case msg_type::global_message:
       {
-        struct msg_global_message *message = (struct msg_global_message*)header;
+        msg_global_message *message = (msg_global_message *)header;
         m_ui.write("# %s\n", message->message);
       }
       break;

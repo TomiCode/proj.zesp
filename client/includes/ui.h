@@ -59,6 +59,9 @@ public:
   // Write something into the message window
   void write(const char *fmt, ...);
 
+  // Why I'm always trying to find sunlight at night?
+  void message(const char *source, const char *fmt, ...);
+
   // Register a command listener
   void register_command(const char *, command_fn_t);
 };

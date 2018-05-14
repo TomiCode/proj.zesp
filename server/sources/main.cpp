@@ -70,9 +70,10 @@ void event_on_client_message(Client *sender, msg_header *header)
         msg_global_message response = {{msg_type::global_message}};
         response.header.size = sizeof(msg_global_message) - sizeof(msg_header);
 
-        snprintf(response.message, 256, "%s: %s", sender->name(), msg->message);
+        snprintf(response.message, sizeof(response.message), "<%s> %s", sender->name(), msg->message);
         for (auto &cli : server_clients) {
-          if (cli->is_active()) cli->send(&response);
+          if (cli->is_active())
+            cli->send(&response);
         }
       }
       break;
