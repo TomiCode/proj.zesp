@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #define LISTEN_PORT 1337
 
 Database users_db("users.wtf");
+
 std::vector<Client*> server_clients;
 
 // Called when a client receives a complete message
@@ -85,7 +87,16 @@ void event_on_client_message(Client *sender, msg_header *header)
 // Called when a client disconnects from the server
 void event_on_client_disconnect(Client *sender)
 {
-
+  auto it = server_clients.begin();
+  while(it != server_clients.end()) {
+    if (*it == sender) {
+      it = server_clients.erase(it);
+      printf("Removed client from vector.");
+      // delete(sender);
+      break;
+    }
+    else it++;
+  }
 }
 
 int main(int argc, char** argv)

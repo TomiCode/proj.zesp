@@ -17,6 +17,7 @@ Client::Client(uint32_t b_size, int32_t socket)
 
 Client::~Client(void)
 {
+  printf("Destroying client at socket %d.\n", m_socket);
   if (m_socket)
     close(m_socket);
 
