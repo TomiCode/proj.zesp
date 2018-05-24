@@ -56,6 +56,9 @@ private:
   void cmd_login(char *args);
 
   void cmd_message(char *args);
+
+  void cmd_join(char *args);
+  void cmd_leave(char *args);
 };
 
 #endif // CLIENT_H

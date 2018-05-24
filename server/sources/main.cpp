@@ -12,6 +12,7 @@
 #include "messages.h"
 #include "client.h"
 #include "database.h"
+#include "channel.h"
 
 #define EXIT_FAIL -1
 #define LISTEN_MAX_CONN 16
@@ -20,6 +21,7 @@
 Database users_db("users.wtf");
 
 std::vector<Client*> server_clients;
+std::vector<Channel*> server_channels;
 
 // Called when a client receives a complete message
 void event_on_client_message(Client *sender, msg_header *header)
@@ -99,6 +101,27 @@ void event_on_client_message(Client *sender, msg_header *header)
           }
         }
       }
+      break;
+      case msg_type::channel_request:
+        {
+          auto *msg = (msg_channel *)header;
+          printf("Client %s requested channel %s.\n", sender->name(), msg->name);
+
+          for (auto &channel : server_channels) {
+            if (strcmp(channel->name(), msg->name) == 0) {
+              if (msg->subscribe)
+                channel->join(sender);
+              else
+                channel->leave(sender);
+              return;
+            }
+          }
+          if (msg->subscribe) {
+            auto *add_channel = new Channel(msg->name);
+            server_channels.push_back(add_channel);
+            add_channel->join(sender);
+          }
+        }
       break;
     default:
       printf("This message was not handled by the server.\n");

@@ -134,6 +134,8 @@ bool Client::init(void)
   m_ui.register_command("register", &Client::cmd_register);
   m_ui.register_command("login", &Client::cmd_login);
   m_ui.register_command("msg", &Client::cmd_message);
+  m_ui.register_command("join", &Client::cmd_join);
+  m_ui.register_command("leave", &Client::cmd_leave);
 
   m_state = client_state_t::notconnected;
   m_ui.write("Hello to super epic chat client v1.3.3.7\n");
@@ -258,3 +260,51 @@ void Client::cmd_message(char *args)
 
   send(&message);
 }
+
+void Client::cmd_join(char *args)
+{
+  char *channel;
+  if (guard_state("join", client_state_t::logged))
+    return;
+  if (!parse_params(args, "s", &channel))
+    return;
+
+  if (*channel != '#') {
+    m_ui.write("[join] Invalid channel name. Channels must be prefixed with '#'.");
+    return;
+  }
+
+  msg_channel message = {{msg_type::channel_request}};
+  message.header.size = sizeof(msg_channel) - sizeof(msg_header);
+
+  strcpy(message.name, channel);
+  message.subscribe = true;
+
+  send(&message);
+}
+
+void Client::cmd_leave(char *args)
+{
+  char *channel;
+  if (guard_state("join", client_state_t::logged))
+    return;
+  if (!parse_params(args, "s", &channel))
+    return;
+
+  if (*channel != '#') {
+    m_ui.write("[join] Invalid channel name. Channels must be prefixed with '#'.");
+    return;
+  }
+
+  msg_channel message = {{msg_type::channel_request}};
+  message.header.size = sizeof(msg_channel) - sizeof(msg_header);
+
+  strcpy(message.name, channel);
+  message.subscribe = false;
+
+  send(&message);
+}
+
+// void Client::cmd_switch(char *args)
+// {
+// }

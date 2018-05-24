@@ -11,7 +11,8 @@ enum class msg_type : uint8_t {
   auth_register = 4,
   auth_response = 5,
   global_message = 6,
-  private_message = 7
+  private_message = 7,
+  channel_request = 8
 };
 
 enum class auth_status : uint8_t {
@@ -57,6 +58,12 @@ struct msg_private_message {
   struct msg_header header;
   char address[64];
   char content[256];
+} __attribute__((packed));
+
+struct msg_channel {
+  struct msg_header header;
+  char name[64];
+  bool subscribe;
 } __attribute__((packed));
 
 #endif /* MESSAGES_H */
