@@ -91,7 +91,17 @@ void event_on_client_message(Client *sender, msg_header *header)
 
         snprintf(response.content, sizeof(response.content), "%s: %s", sender->name(), msg->content);
         strcpy(response.address, msg->address);
-        sender->send(&response);
+
+        if (*(msg->address) == '#') { // Server channel, not a user.
+          for(auto &channel : server_channels) {
+            if (strcmp(channel->name(), msg->address) == 0) {
+              channel->send(&response);
+            }
+          }
+          return;
+        }
+        else
+          sender->send(&response);
 
         strcpy(response.address, sender->name());
         for (auto &client : server_clients) {
