@@ -54,6 +54,8 @@ private:
   void cmd_connect(char *args);
   void cmd_register(char *args);
   void cmd_login(char *args);
+
+  void cmd_message(char *args);
 };
 
 #endif // CLIENT_H

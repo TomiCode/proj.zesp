@@ -36,6 +36,7 @@ bool Client::parse_params(char *args, const char *fmt, ...)
       break;
 
     if (*fmt == 't') {
+      fmt++;
       char **param = va_arg(params, char**);
       *param = args;
       break;
@@ -107,8 +108,14 @@ void Client::handle_message(struct msg_header *header)
       break;
     case msg_type::global_message:
       {
-        msg_global_message *message = (msg_global_message *)header;
+        auto *message = (msg_global_message *)header;
         m_ui.write("# %s\n", message->message);
+      }
+      break;
+    case msg_type::private_message:
+      {
+        auto *message = (msg_private_message *)header;
+        m_ui.write("[%s] %s\n", message->address, message->content);
       }
       break;
     default:
@@ -126,6 +133,7 @@ bool Client::init(void)
   m_ui.register_command("connect", &Client::cmd_connect);
   m_ui.register_command("register", &Client::cmd_register);
   m_ui.register_command("login", &Client::cmd_login);
+  m_ui.register_command("msg", &Client::cmd_message);
 
   m_state = client_state_t::notconnected;
   m_ui.write("Hello to super epic chat client v1.3.3.7\n");
@@ -232,4 +240,21 @@ void Client::cmd_login(char *args)
   strcpy(login.password, passwd);
 
   send(&login);
+}
+
+void Client::cmd_message(char *args)
+{
+  char *username, *msg;
+  if (guard_state("msg", client_state_t::logged))
+    return;
+  if (!parse_params(args, "st", &username, &msg))
+    return;
+
+  msg_private_message message = {{msg_type::private_message}};
+  message.header.size = sizeof(msg_private_message) - sizeof(msg_header);
+
+  strcpy(message.address, username);
+  strcpy(message.content, msg);
+
+  send(&message);
 }

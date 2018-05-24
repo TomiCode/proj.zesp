@@ -79,6 +79,27 @@ void event_on_client_message(Client *sender, msg_header *header)
         }
       }
       break;
+    case msg_type::private_message:
+      {
+        auto *msg = (msg_private_message *)header;
+        printf("Private message from %s to %s.\n", sender->name(), msg->address);
+
+        msg_private_message response = {{msg_type::private_message}};
+        response.header.size = sizeof(msg_private_message) - sizeof(msg_header);
+
+        snprintf(response.content, sizeof(response.content), "%s: %s", sender->name(), msg->content);
+        strcpy(response.address, msg->address);
+        sender->send(&response);
+
+        strcpy(response.address, sender->name());
+        for (auto &client : server_clients) {
+          if (strcmp(client->name(), msg->address) == 0) {
+            client->send(&response);
+            break;
+          }
+        }
+      }
+      break;
     default:
       printf("This message was not handled by the server.\n");
   }
