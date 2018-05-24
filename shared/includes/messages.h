@@ -11,8 +11,7 @@ enum class msg_type : uint8_t {
   auth_register = 4,
   auth_response = 5,
   global_message = 6,
-  private_message = 7,
-  private_response = 8
+  private_message = 7
 };
 
 enum class auth_status : uint8_t {
