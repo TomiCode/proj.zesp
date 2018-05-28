@@ -77,10 +77,8 @@ void Ui::process(void)
         *(m_buffers.input++) = '\0';
         m_buffers.params = m_buffers.input;
         m_ui_mode = ui_mode_t::params;
+        break;
       }
-      else if (m_ui_mode == ui_mode_t::params || m_ui_mode == ui_mode_t::message)
-        *(m_buffers.input++) = _char;
-      break;
     case '/':
       if (m_ui_mode == ui_mode_t::invalid) {
         m_ui_mode = ui_mode_t::command;

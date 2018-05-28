@@ -304,7 +304,3 @@ void Client::cmd_leave(char *args)
 
   send(&message);
 }
-
-// void Client::cmd_switch(char *args)
-// {
-// }

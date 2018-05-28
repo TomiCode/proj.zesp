@@ -3,6 +3,9 @@
 
 int main(int argc, char** argv)
 {
+  (void)argc;
+  (void)argv;
+
   Client client;
 
   // Initialize everything in the client class
