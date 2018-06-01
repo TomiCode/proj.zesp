@@ -1,4 +1,5 @@
 #include <sys/socket.h>
+#include <string.h>
 
 #include "client.h"
 #include "messages.h"

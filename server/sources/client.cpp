@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "messages.h"

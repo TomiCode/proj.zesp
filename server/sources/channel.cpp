@@ -1,3 +1,5 @@
+#include <iostream>
+#include <algorithm>
 #include <string.h>
 
 #include "messages.h"
